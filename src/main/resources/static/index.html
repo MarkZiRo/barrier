@@ -1,0 +1,37 @@
+<html lang="kr">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 화면</title>
+</head>
+<body>
+<main class="flex-shrink-0">
+    <section class="py-5">
+        <div class="container px-5">
+            <div class ="bg-light rounded=3 py-5 px-4 px-md-5 mb-5">
+                <div class="row gx-5 justify-content-center">
+                    <div class="col-lg-8 col-xl-6">
+                        <h1 class="text-center mb-5">
+                            로그인
+                        </h1>
+                        <form action="users/login" method="post">
+                            <div class="form-floating mb-3">
+                                <input class="form-control" id="identifier" name="username" type="text" placeholder="enter">
+                                <label for="identifier">ID</label>
+                            </div>
+                            <div class="form-floating mb-3">
+                                <input class="form-control" id="password" name="password" type="password" placeholder="enter">
+                                <label for="password">PASSWORD</label>
+                            </div>
+                            <div class="d-grid"> <button class="btn btn-primary btn-lg" id="sign-in-button" type="submit">Submit</button></div>
+                            <a href="/oauth2/authorization/kakao">
+                                카카오
+                            </a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

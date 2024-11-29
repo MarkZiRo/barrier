@@ -1,0 +1,10 @@
+openroute:
+  api:
+    key: 5b3ce3597851110001cf6248bd822f9d75cd474caa73195bb0970318
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
