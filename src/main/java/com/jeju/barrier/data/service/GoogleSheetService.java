@@ -110,6 +110,7 @@ public class GoogleSheetService {
             dto.setTable(getStringValue(row, 32));
             dto.setTotal(getStringValue(row, 33));
             dto.setAccessibility(getStringValue(row, 34));
+            dto.setTitle(getStringValue(row, 35));
 
             return dto;
         } catch (Exception e) {

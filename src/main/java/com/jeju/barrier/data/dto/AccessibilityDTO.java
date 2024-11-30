@@ -54,4 +54,5 @@ public class AccessibilityDTO {
     // 평가 관련
     private String total;          // 총점
     private String accessibility;  // 접근성 평가
+    private String title;
 }

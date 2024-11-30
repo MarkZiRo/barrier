@@ -30,4 +30,10 @@ public class RouteController {
         // start와 end 좌표를 "경도,위도" 형식으로 받아 파싱
         return routeService.getAccessibleWheelchair(start, end);
     }
+
+    @GetMapping("/elevation")
+    public Object getElevation(@RequestParam("coordinates") String coordinates) {
+        return routeService.getElevation(coordinates);
+    }
+
 }
