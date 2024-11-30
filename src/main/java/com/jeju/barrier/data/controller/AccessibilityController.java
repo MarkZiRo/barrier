@@ -55,21 +55,34 @@ public class AccessibilityController {
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lon,
             @RequestParam(required = false) Double radius) {
+
+        log.info("=== 필터 API 호출 시작 ===");
+        log.info("요청 파라미터: categories={}, userTypes={}, title={}, lat={}, lon={}, radius={}",
+                categories, userTypes, title, lat, lon, radius);
+
         try {
             // 카테고리 문자열 리스트를 enum 리스트로 변환
             List<AccessibilityFilter.Category> categoryEnums = null;
             if (categories != null && !categories.isEmpty()) {
                 categoryEnums = categories.stream()
-                        .map(cat -> AccessibilityFilter.Category.valueOf(cat.toUpperCase()))
+                        .map(cat -> {
+                            log.debug("카테고리 변환: {}", cat);
+                            return AccessibilityFilter.Category.valueOf(cat.toUpperCase());
+                        })
                         .collect(Collectors.toList());
+                log.debug("변환된 카테고리: {}", categoryEnums);
             }
 
             // 유저타입 문자열 리스트를 enum 리스트로 변환
             List<AccessibilityFilter.UserType> userTypeEnums = null;
             if (userTypes != null && !userTypes.isEmpty()) {
                 userTypeEnums = userTypes.stream()
-                        .map(type -> AccessibilityFilter.UserType.valueOf(type.toUpperCase()))
+                        .map(type -> {
+                            log.debug("유저타입 변환: {}", type);
+                            return AccessibilityFilter.UserType.valueOf(type.toUpperCase());
+                        })
                         .collect(Collectors.toList());
+                log.debug("변환된 유저타입: {}", userTypeEnums);
             }
 
             // 필터 객체 생성
@@ -81,38 +94,46 @@ public class AccessibilityController {
                     .lon(lon)
                     .radius(radius)
                     .build();
+            log.debug("생성된 필터 객체: {}", filter);
 
             // 거리 계산을 위한 함수 정의
             Function<double[], Double> distanceCalculator = coordinates -> {
-                double lat1 = coordinates[0]; // 첫 번째 위치의 위도
-                double lon1 = coordinates[1]; // 첫 번째 위치의 경도
-                double lat2 = coordinates[2]; // 두 번째 위치의 위도
-                double lon2 = coordinates[3]; // 두 번째 위치의 경도
+                double lat1 = coordinates[0];
+                double lon1 = coordinates[1];
+                double lat2 = coordinates[2];
+                double lon2 = coordinates[3];
 
                 // Haversine 공식을 사용한 거리 계산
-                final int R = 6371; // 지구의 반경 (km)
+                final int R = 6371;
                 double latDistance = Math.toRadians(lat2 - lat1);
                 double lonDistance = Math.toRadians(lon2 - lon1);
                 double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
                         + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
                         * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
                 double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                double distance = R * c; // km 단위의 최종 거리 계산
+                double distance = R * c;
 
+                log.trace("거리 계산 - 좌표({}, {}) -> ({}, {}): {}km",
+                        lat1, lon1, lat2, lon2, distance);
                 return distance;
             };
 
-            return accessibilityService.getFilteredData(filter, distanceCalculator);
+            ResponseEntity<List<AccessibilityDTO>> response = accessibilityService.getFilteredData(filter, distanceCalculator);
+            log.info("=== 필터 API 호출 완료 - 상태코드: {} ===", response.getStatusCode());
+            return response;
+
         } catch (IllegalArgumentException e) {
-            log.error("잘못된 카테고리 또는 유저타입 값: categories={}, userTypes={}, title={}",
+            log.error("잘못된 카테고리 또는 유저타입 값", e);
+            log.error("에러 발생 파라미터: categories={}, userTypes={}, title={}",
                     categories, userTypes, title);
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("데이터 조회 중 오류 발생: {}", e.getMessage());
+            log.error("데이터 조회 중 예기치 못한 오류 발생", e);
+            log.error("에러 발생 시점 파라미터: categories={}, userTypes={}, title={}, lat={}, lon={}, radius={}",
+                    categories, userTypes, title, lat, lon, radius);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
     // 위치 기반 검색 (위도/경도 범위 내)
     @GetMapping("/nearby")
     public ResponseEntity<List<AccessibilityDTO>> getNearbyLocations(
