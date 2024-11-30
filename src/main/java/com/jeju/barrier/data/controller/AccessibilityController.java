@@ -49,22 +49,19 @@ public class AccessibilityController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<AccessibilityDTO>> getFilteredData(
-            @RequestParam(required = false) List<String> categories,
+            @RequestParam(required = false) List<String> category,
             @RequestParam(required = false) List<String> userTypes,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lon,
             @RequestParam(required = false) Double radius) {
 
-        log.info("=== 필터 API 호출 시작 ===");
-        log.info("요청 파라미터: categories={}, userTypes={}, title={}, lat={}, lon={}, radius={}",
-                categories, userTypes, title, lat, lon, radius);
 
         try {
             // 카테고리 문자열 리스트를 enum 리스트로 변환
             List<AccessibilityFilter.Category> categoryEnums = null;
-            if (categories != null && !categories.isEmpty()) {
-                categoryEnums = categories.stream()
+            if (category != null && !category.isEmpty()) {
+                categoryEnums = category.stream()
                         .map(cat -> {
                             log.debug("카테고리 변환: {}", cat);
                             return AccessibilityFilter.Category.valueOf(cat.toUpperCase());
@@ -123,14 +120,8 @@ public class AccessibilityController {
             return response;
 
         } catch (IllegalArgumentException e) {
-            log.error("잘못된 카테고리 또는 유저타입 값", e);
-            log.error("에러 발생 파라미터: categories={}, userTypes={}, title={}",
-                    categories, userTypes, title);
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("데이터 조회 중 예기치 못한 오류 발생", e);
-            log.error("에러 발생 시점 파라미터: categories={}, userTypes={}, title={}, lat={}, lon={}, radius={}",
-                    categories, userTypes, title, lat, lon, radius);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
