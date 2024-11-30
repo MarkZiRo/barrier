@@ -15,9 +15,6 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
-                .servers(Arrays.asList(
-                        new Server().url("http://43.202.62.146")
-                ))
                 .info(new Info().title("Barrier Free").version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new io.swagger.v3.oas.models.Components()
