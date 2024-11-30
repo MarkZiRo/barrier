@@ -87,11 +87,30 @@ public class AccessibilityController {
                         try {
                             double dtoLat = Double.parseDouble(dto.getLat().trim());
                             double dtoLon = Double.parseDouble(dto.getLon().trim());
-                            return isWithinRadius(dtoLat, dtoLon, lat, lon, radius);
+                            double distance = calculateDistance(dtoLat, dtoLon, lat, lon);
+                            // radius 킬로미터 이내의 장소만 필터링
+                            return distance <= radius;
                         } catch (NumberFormatException e) {
                             log.debug("Skipping invalid coordinates for id: {}", dto.getId());
                             return false;
                         }
+                    })
+                    .sorted((loc1, loc2) -> {
+                        // 각 위치의 거리 계산
+                        double dist1 = calculateDistance(
+                                Double.parseDouble(loc1.getLat().trim()),
+                                Double.parseDouble(loc1.getLon().trim()),
+                                lat,
+                                lon
+                        );
+                        double dist2 = calculateDistance(
+                                Double.parseDouble(loc2.getLat().trim()),
+                                Double.parseDouble(loc2.getLon().trim()),
+                                lat,
+                                lon
+                        );
+                        // 거리를 기준으로 오름차순 정렬
+                        return Double.compare(dist1, dist2);
                     })
                     .collect(Collectors.toList());
 
@@ -102,19 +121,19 @@ public class AccessibilityController {
         }
     }
 
-    // 거리 계산 헬퍼 메서드 (Haversine 공식)
-    private boolean isWithinRadius(double lat1, double lon1, double lat2, double lon2, double radius) {
-        double R = 6371; // 지구 반지름 (km)
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
+    // 두 지점 간의 거리를 계산하는 메서드 (Haversine 공식 사용)
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // 지구의 반지름 (km)
 
-        double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLon/2) * Math.sin(dLon/2);
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
 
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        double distance = R * c;
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
 
-        return distance <= radius;
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // 킬로미터 단위의 거리 반환
     }
 }
