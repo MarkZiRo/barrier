@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,29 +42,6 @@ public class AccessibilityController {
             }
         } catch (IOException e) {
             log.error("Error fetching data for ID {}: {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    // 카테고리별 데이터 조회
-    @GetMapping("/category/{category}")
-    public ResponseEntity<List<AccessibilityDTO>> getDataByCategory(@PathVariable String category) {
-        try {
-            // 문자열을 enum으로 변환
-            AccessibilityFilter.Category categoryEnum = AccessibilityFilter.Category.valueOf(category.toUpperCase());
-
-            List<AccessibilityDTO> allData = googleSheetService.getSheetData();
-            List<AccessibilityDTO> filteredData = allData.stream()
-                    .filter(dto -> dto.getCat() != null &&
-                            dto.getCat().equals(categoryEnum.getValue()))  // enum의 value와 정확히 비교
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(filteredData);
-        } catch (IllegalArgumentException e) {
-            log.error("잘못된 카테고리 값: {}", category);
-            return ResponseEntity.badRequest().build();
-        } catch (IOException e) {
-            log.error("카테고리 {} 데이터 조회 중 오류 발생: {}", category, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -114,7 +92,6 @@ public class AccessibilityController {
             List<AccessibilityDTO> allData = googleSheetService.getSheetData();
             List<AccessibilityDTO> nearbyLocations = allData.stream()
                     .filter(dto -> {
-                        // null이거나 빈 문자열인 경우 필터링
                         if (dto.getLat() == null || dto.getLon() == null ||
                                 dto.getLat().trim().isEmpty() || dto.getLon().trim().isEmpty()) {
                             return false;
@@ -124,30 +101,15 @@ public class AccessibilityController {
                             double dtoLat = Double.parseDouble(dto.getLat().trim());
                             double dtoLon = Double.parseDouble(dto.getLon().trim());
                             double distance = calculateDistance(dtoLat, dtoLon, lat, lon);
-                            // radius 킬로미터 이내의 장소만 필터링
+                            // 거리 정보 설정
+                            dto.setDistance(Math.round(distance * 100.0) / 100.0); // 소수점 둘째자리까지 반올림
                             return distance <= radius;
                         } catch (NumberFormatException e) {
                             log.debug("Skipping invalid coordinates for id: {}", dto.getId());
                             return false;
                         }
                     })
-                    .sorted((loc1, loc2) -> {
-                        // 각 위치의 거리 계산
-                        double dist1 = calculateDistance(
-                                Double.parseDouble(loc1.getLat().trim()),
-                                Double.parseDouble(loc1.getLon().trim()),
-                                lat,
-                                lon
-                        );
-                        double dist2 = calculateDistance(
-                                Double.parseDouble(loc2.getLat().trim()),
-                                Double.parseDouble(loc2.getLon().trim()),
-                                lat,
-                                lon
-                        );
-                        // 거리를 기준으로 오름차순 정렬
-                        return Double.compare(dist1, dist2);
-                    })
+                    .sorted(Comparator.comparing(AccessibilityDTO::getDistance)) // 거리순 정렬
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(nearbyLocations);
@@ -156,7 +118,6 @@ public class AccessibilityController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
     @GetMapping("/search/{title}")
     public ResponseEntity<List<AccessibilityDTO>> searchByTitle(
             @PathVariable String title) {
@@ -164,6 +125,46 @@ public class AccessibilityController {
             return accessibilityService.searchByTitle(title);
         } catch (Exception e) {
             log.error("제목 검색 중 오류 발생: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/search/{title}/distance")
+    public ResponseEntity<List<AccessibilityDTO>> searchByTitleWithDistance(
+            @PathVariable String title,
+            @RequestParam double lat,
+            @RequestParam double lon) {
+        try {
+            List<AccessibilityDTO> allData = googleSheetService.getSheetData();
+
+            List<AccessibilityDTO> searchResults = allData.stream()
+                    .filter(dto -> dto.getTitle() != null &&
+                            dto.getTitle().toLowerCase().contains(title.toLowerCase().trim()))
+                    .filter(dto -> {
+                        // 좌표가 유효한 데이터만 필터링
+                        if (dto.getLat() == null || dto.getLon() == null ||
+                                dto.getLat().trim().isEmpty() || dto.getLon().trim().isEmpty()) {
+                            return false;
+                        }
+
+                        try {
+                            double dtoLat = Double.parseDouble(dto.getLat().trim());
+                            double dtoLon = Double.parseDouble(dto.getLon().trim());
+                            double distance = calculateDistance(dtoLat, dtoLon, lat, lon);
+                            // 거리 정보 설정 (소수점 둘째자리까지 반올림)
+                            dto.setDistance(Math.round(distance * 100.0) / 100.0);
+                            return true;
+                        } catch (NumberFormatException e) {
+                            log.debug("Skipping invalid coordinates for id: {}", dto.getId());
+                            return false;
+                        }
+                    })
+                    .sorted(Comparator.comparing(AccessibilityDTO::getDistance)) // 거리순 정렬
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(searchResults);
+        } catch (Exception e) {
+            log.error("제목 검색 및 거리 계산 중 오류 발생: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

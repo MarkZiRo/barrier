@@ -55,4 +55,5 @@ public class AccessibilityDTO {
     private String total;          // 총점
     private String accessibility;  // 접근성 평가
     private String title;
+    private Double distance; // 킬로미터 단위의 거리
 }
