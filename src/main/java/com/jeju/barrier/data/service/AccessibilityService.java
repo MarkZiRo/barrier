@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,15 +51,27 @@ public class AccessibilityService {
             )
     );
 
-    public ResponseEntity<List<AccessibilityDTO>> getFilteredData(AccessibilityFilter filter) {
+    public ResponseEntity<List<AccessibilityDTO>> getFilteredData(AccessibilityFilter filter,
+                                                                  Function<double[], Double> distanceCalculator) {
         try {
             List<AccessibilityDTO> allData = googleSheetService.getSheetData();
 
-            // 스트림을 사용하여 필터링 수행 (title 조건 추가)
+            // 스트림을 사용하여 필터링 수행
             List<AccessibilityDTO> filteredData = allData.stream()
                     .filter(dto -> matchesCategories(dto, filter.getCategories()) &&
                             matchesAccessibilityFeatures(dto, filter.getUserTypes()) &&
-                            matchesTitle(dto, filter.getTitle()))
+                            matchesTitle(dto, filter.getTitle()) &&
+                            matchesLocation(dto, filter.getLat(), filter.getLon(), filter.getRadius(), distanceCalculator))
+                    .peek(dto -> {
+                        // 위치 정보가 있는 경우에만 거리 계산
+                        if (filter.getLat() != null && filter.getLon() != null) {
+                            calculateAndSetDistance(dto, filter.getLat(), filter.getLon(), distanceCalculator);
+                        }
+                    })
+                    .sorted(Comparator.comparing(
+                            AccessibilityDTO::getDistance,
+                            Comparator.nullsLast(Comparator.naturalOrder())
+                    ))
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(filteredData);
@@ -66,7 +80,6 @@ public class AccessibilityService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
     // 카테고리 매칭 확인
 
     private boolean matchesCategories(AccessibilityDTO dto, List<AccessibilityFilter.Category> categories) {
@@ -91,7 +104,7 @@ public class AccessibilityService {
             return true; // 유저타입 필터가 없으면 모든 데이터 통과
         }
 
-        // 선택된 유저타입 중 하나라도 매칭되면 true 반환
+        // 선택된 유저타입 중 하나라도 매칭되면 true 반환ㄹ
         return userTypes.stream().anyMatch(userType -> {
             Set<String> features = specificFeatures.get(userType);
             if (features == null || features.isEmpty()) {
@@ -162,5 +175,40 @@ public class AccessibilityService {
         }
         return dto.getTitle() != null &&
                 dto.getTitle().toLowerCase().contains(title.toLowerCase().trim());
+    }
+
+    private void calculateAndSetDistance(AccessibilityDTO dto, double lat, double lon,
+                                         Function<double[], Double> distanceCalculator) {
+        try {
+            double dtoLat = Double.parseDouble(dto.getLat().trim());
+            double dtoLon = Double.parseDouble(dto.getLon().trim());
+            double distance = distanceCalculator.apply(new double[]{dtoLat, dtoLon, lat, lon});
+            dto.setDistance(Math.round(distance * 100.0) / 100.0);
+        } catch (NumberFormatException | NullPointerException e) {
+            log.debug("Error calculating distance for id: {}", dto.getId());
+            dto.setDistance(null);
+        }
+    }
+
+    private boolean matchesLocation(AccessibilityDTO dto, Double lat, Double lon, Double radius,
+                                    Function<double[], Double> distanceCalculator) {
+        if (lat == null || lon == null || radius == null) {
+            return true;
+        }
+
+        if (dto.getLat() == null || dto.getLon() == null ||
+                dto.getLat().trim().isEmpty() || dto.getLon().trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            double dtoLat = Double.parseDouble(dto.getLat().trim());
+            double dtoLon = Double.parseDouble(dto.getLon().trim());
+            double distance = distanceCalculator.apply(new double[]{dtoLat, dtoLon, lat, lon});
+            return distance <= radius;
+        } catch (NumberFormatException e) {
+            log.debug("Invalid coordinates for id: {}", dto.getId());
+            return false;
+        }
     }
 }

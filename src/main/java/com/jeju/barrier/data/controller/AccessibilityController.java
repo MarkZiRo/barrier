@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RestController
@@ -49,8 +50,11 @@ public class AccessibilityController {
     @GetMapping("/filter")
     public ResponseEntity<List<AccessibilityDTO>> getFilteredData(
             @RequestParam(required = false) List<String> categories,
-            @RequestParam(required = false) List<String> userTypes,  // 단일 userType → List<String> userTypes
-            @RequestParam(required = false) String title) {
+            @RequestParam(required = false) List<String> userTypes,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
+            @RequestParam(required = false) Double radius) {
         try {
             // 카테고리 문자열 리스트를 enum 리스트로 변환
             List<AccessibilityFilter.Category> categoryEnums = null;
@@ -69,9 +73,36 @@ public class AccessibilityController {
             }
 
             // 필터 객체 생성
-            AccessibilityFilter filter = new AccessibilityFilter(categoryEnums, userTypeEnums, title);
+            AccessibilityFilter filter = AccessibilityFilter.builder()
+                    .categories(categoryEnums)
+                    .userTypes(userTypeEnums)
+                    .title(title)
+                    .lat(lat)
+                    .lon(lon)
+                    .radius(radius)
+                    .build();
 
-            return accessibilityService.getFilteredData(filter);
+            // 거리 계산을 위한 함수 정의
+            Function<double[], Double> distanceCalculator = coordinates -> {
+                double lat1 = coordinates[0]; // 첫 번째 위치의 위도
+                double lon1 = coordinates[1]; // 첫 번째 위치의 경도
+                double lat2 = coordinates[2]; // 두 번째 위치의 위도
+                double lon2 = coordinates[3]; // 두 번째 위치의 경도
+
+                // Haversine 공식을 사용한 거리 계산
+                final int R = 6371; // 지구의 반경 (km)
+                double latDistance = Math.toRadians(lat2 - lat1);
+                double lonDistance = Math.toRadians(lon2 - lon1);
+                double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                        + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+                double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                double distance = R * c; // km 단위의 최종 거리 계산
+
+                return distance;
+            };
+
+            return accessibilityService.getFilteredData(filter, distanceCalculator);
         } catch (IllegalArgumentException e) {
             log.error("잘못된 카테고리 또는 유저타입 값: categories={}, userTypes={}, title={}",
                     categories, userTypes, title);
