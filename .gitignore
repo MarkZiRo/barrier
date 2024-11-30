@@ -28,8 +28,8 @@ target/
 build/
 out/
 
-# Google Cloud Service Account
-src/main/resources/gs.json
+## Google Cloud Service Account
+#src/main/resources/gs.json
 
 # Application properties
 application-*.properties
