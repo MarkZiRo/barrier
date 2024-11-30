@@ -15,11 +15,19 @@ public class RouteController {
     private final OpenRouteService routeService;
 
     // '/api/routes/accessible' 엔드포인트로 GET 요청을 받아서 경로를 계산
-    @GetMapping("/accessible")
-    public Object getAccessibleRoute(
+    @GetMapping("/walking")
+    public Object getAccessibleWalking(
             @RequestParam("start") String start,
             @RequestParam("end") String end) {
         // start와 end 좌표를 "경도,위도" 형식으로 받아 파싱
-        return routeService.getAccessibleRoute(start, end);
+        return routeService.getAccessibleWalking(start, end);
+    }
+
+    @GetMapping("/wheelchair")
+    public Object getAccessibleWheelchair(
+            @RequestParam("start") String start,
+            @RequestParam("end") String end) {
+        // start와 end 좌표를 "경도,위도" 형식으로 받아 파싱
+        return routeService.getAccessibleWheelchair(start, end);
     }
 }

@@ -17,12 +17,37 @@ import java.util.Collections;
 public class OpenRouteService {
 
     private static final String BASE_URL = "https://api.openrouteservice.org/v2/directions/foot-walking";
+    private static final String BASE_URL2 = "https://api.openrouteservice.org/v2/directions/wheelchair";
 
     @Value("${openroute.api.key}")
     private String apiKey;
 
-    public Object getAccessibleRoute(String start, String end) {
+    public Object getAccessibleWalking(String start, String end) {
         String url = UriComponentsBuilder.fromUriString(BASE_URL)
+                .queryParam("start", start)
+                .queryParam("end", end)
+                .build()
+                .toUriString();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization",  apiKey);
+
+        HttpEntity<?> entity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+
+        restTemplate.setInterceptors(Collections.singletonList((request, body, execution) -> {
+            log.info("Request URL: " + request.getURI());
+            log.info("Request Headers: " + request.getHeaders());
+            ClientHttpResponse response = execution.execute(request, body);
+            log.info("Response Status: " + response.getStatusCode());
+            return response;
+        }));
+
+        return restTemplate.exchange(url, HttpMethod.GET, entity, Object.class).getBody();
+    }
+
+    public Object getAccessibleWheelchair(String start, String end) {
+        String url = UriComponentsBuilder.fromUriString(BASE_URL2)
                 .queryParam("start", start)
                 .queryParam("end", end)
                 .build()
