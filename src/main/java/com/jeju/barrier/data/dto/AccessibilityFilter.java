@@ -6,14 +6,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.Objects;
+
 
 @Getter
 @Setter
 @NoArgsConstructor
 public class AccessibilityFilter {
-    private List<Category> categories; // 다중 카테고리 지원
-    private UserType userType;         // 사용자 유형
+    private List<Category> categories;    // 다중 카테고리 지원
+    private List<UserType> userTypes;     // 다중 사용자 유형 지원 (userType → userTypes로 변경)
+    private String title;                 // 제목 검색
 
     // 카테고리 정의
     public enum Category {
@@ -40,15 +41,17 @@ public class AccessibilityFilter {
         INFANT_ACCOMPANIED   // 영유아동반
     }
 
-    // 단일 카테고리와 유저타입을 받는 생성자
-    public AccessibilityFilter(Category category, UserType userType) {
+    // 단일 카테고리와 단일 유저타입을 받는 생성자
+    public AccessibilityFilter(Category category, UserType userType, String title) {
         this.categories = category != null ? List.of(category) : null;
-        this.userType = userType;
+        this.userTypes = userType != null ? List.of(userType) : null;
+        this.title = title;
     }
 
-    // 다중 카테고리와 유저타입을 받는 생성자
-    public AccessibilityFilter(List<Category> categories, UserType userType) {
+    // 다중 카테고리와 다중 유저타입을 받는 생성자
+    public AccessibilityFilter(List<Category> categories, List<UserType> userTypes, String title) {
         this.categories = categories;
-        this.userType = userType;
+        this.userTypes = userTypes;
+        this.title = title;
     }
 }

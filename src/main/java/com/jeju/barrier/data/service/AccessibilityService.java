@@ -51,13 +51,13 @@ public class AccessibilityService {
 
     public ResponseEntity<List<AccessibilityDTO>> getFilteredData(AccessibilityFilter filter) {
         try {
-            // 전체 데이터를 가져옴
             List<AccessibilityDTO> allData = googleSheetService.getSheetData();
 
-            // 스트림을 사용하여 필터링 수행
+            // 스트림을 사용하여 필터링 수행 (title 조건 추가)
             List<AccessibilityDTO> filteredData = allData.stream()
                     .filter(dto -> matchesCategories(dto, filter.getCategories()) &&
-                            matchesAccessibilityFeatures(dto, filter.getUserType()))
+                            matchesAccessibilityFeatures(dto, filter.getUserTypes()) &&
+                            matchesTitle(dto, filter.getTitle()))
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(filteredData);
@@ -86,25 +86,27 @@ public class AccessibilityService {
                 .anyMatch(categoryValue -> dto.getCat().equals(categoryValue));
     }
     // 접근성 기능 매칭 확인
-    private boolean matchesAccessibilityFeatures(AccessibilityDTO dto, AccessibilityFilter.UserType userType) {
-        if (userType == null) {
+    private boolean matchesAccessibilityFeatures(AccessibilityDTO dto, List<AccessibilityFilter.UserType> userTypes) {
+        if (userTypes == null || userTypes.isEmpty()) {
             return true; // 유저타입 필터가 없으면 모든 데이터 통과
         }
 
-        Set<String> features = specificFeatures.get(userType);
-        if (features == null || features.isEmpty()) {
-            return true;
-        }
+        // 선택된 유저타입 중 하나라도 매칭되면 true 반환
+        return userTypes.stream().anyMatch(userType -> {
+            Set<String> features = specificFeatures.get(userType);
+            if (features == null || features.isEmpty()) {
+                return true;
+            }
 
-        // 특정 기능과 공통 편의시설을 모두 만족해야 함
-        boolean hasSpecificFeatures = features.stream()
-                .anyMatch(feature -> matchesFeature(dto, feature));
-        boolean hasCommonFeatures = commonFeatures.stream()
-                .anyMatch(commonFeature -> matchesFeature(dto, commonFeature));
+            // 특정 기능과 공통 편의시설을 모두 만족해야 함
+            boolean hasSpecificFeatures = features.stream()
+                    .anyMatch(feature -> matchesFeature(dto, feature));
+            boolean hasCommonFeatures = commonFeatures.stream()
+                    .anyMatch(commonFeature -> matchesFeature(dto, commonFeature));
 
-        return hasSpecificFeatures || hasCommonFeatures;
+            return hasSpecificFeatures || hasCommonFeatures;
+        });
     }
-
     // 특정 기능 매칭 확인
     private boolean matchesFeature(AccessibilityDTO dto, String feature) {
         // hints 필드 확인
@@ -152,5 +154,13 @@ public class AccessibilityService {
             }
         }
         return false;
+    }
+
+    private boolean matchesTitle(AccessibilityDTO dto, String title) {
+        if (title == null || title.trim().isEmpty()) {
+            return true;  // 제목 필터가 없으면 모든 데이터 통과
+        }
+        return dto.getTitle() != null &&
+                dto.getTitle().toLowerCase().contains(title.toLowerCase().trim());
     }
 }

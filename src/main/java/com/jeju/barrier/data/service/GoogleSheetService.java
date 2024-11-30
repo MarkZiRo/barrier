@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class GoogleSheetService {
     private static final String SPREADSHEET_ID = "1DbZ7G7mrWEVPiaA-x7CU-LOV0_huNMFz5o_moGtROQ8";
 
-    private static final String RANGE = "시트1!A2:AI";
+    private static final String RANGE = "시트1!A2:AJ";
     private static final String CREDENTIALS_FILE_PATH = "/gs.json";
 
     private final Sheets sheetsService;
@@ -81,7 +81,7 @@ public class GoogleSheetService {
     }
 
     private AccessibilityDTO convertRowToDTO(List<Object> row) {
-        if (row.size() < 35) return null; // 필요한 모든 컬럼이 있는지 확인
+
 
         AccessibilityDTO dto = new AccessibilityDTO();
         try {

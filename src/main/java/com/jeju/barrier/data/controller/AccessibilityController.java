@@ -70,8 +70,9 @@ public class AccessibilityController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<AccessibilityDTO>> getFilteredData(
-            @RequestParam(required = false) List<String> categories,  // 다중 카테고리
-            @RequestParam(required = false) String userType) {        // 단일 유저타입
+            @RequestParam(required = false) List<String> categories,
+            @RequestParam(required = false) List<String> userTypes,  // 단일 userType → List<String> userTypes
+            @RequestParam(required = false) String title) {
         try {
             // 카테고리 문자열 리스트를 enum 리스트로 변환
             List<AccessibilityFilter.Category> categoryEnums = null;
@@ -81,43 +82,28 @@ public class AccessibilityController {
                         .collect(Collectors.toList());
             }
 
-            // 유저타입 문자열을 enum으로 변환
-            AccessibilityFilter.UserType userTypeEnum = userType != null ?
-                    AccessibilityFilter.UserType.valueOf(userType.toUpperCase()) : null;
+            // 유저타입 문자열 리스트를 enum 리스트로 변환
+            List<AccessibilityFilter.UserType> userTypeEnums = null;
+            if (userTypes != null && !userTypes.isEmpty()) {
+                userTypeEnums = userTypes.stream()
+                        .map(type -> AccessibilityFilter.UserType.valueOf(type.toUpperCase()))
+                        .collect(Collectors.toList());
+            }
 
             // 필터 객체 생성
-            AccessibilityFilter filter = new AccessibilityFilter(categoryEnums, userTypeEnum);
+            AccessibilityFilter filter = new AccessibilityFilter(categoryEnums, userTypeEnums, title);
 
             return accessibilityService.getFilteredData(filter);
         } catch (IllegalArgumentException e) {
-            log.error("잘못된 카테고리 또는 유저타입 값: categories={}, userType={}", categories, userType);
+            log.error("잘못된 카테고리 또는 유저타입 값: categories={}, userTypes={}, title={}",
+                    categories, userTypes, title);
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             log.error("데이터 조회 중 오류 발생: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    @GetMapping
-    public ResponseEntity<List<AccessibilityDTO>> getPlaces(
-            @RequestParam(required = false) String category,  // String으로 받아서
-            @RequestParam(required = false) String userType) {  // String으로 받아서
-        try {
-            // null 체크 후 enum으로 변환
-            AccessibilityFilter.Category categoryEnum = category != null ?
-                    AccessibilityFilter.Category.valueOf(category.toUpperCase()) : null;
-            AccessibilityFilter.UserType userTypeEnum = userType != null ?
-                    AccessibilityFilter.UserType.valueOf(userType.toUpperCase()) : null;
 
-            AccessibilityFilter filter = new AccessibilityFilter(categoryEnum, userTypeEnum);
-            return accessibilityService.getFilteredData(filter);
-        } catch (IllegalArgumentException e) {
-            log.error("잘못된 category 또는 userType 값: category={}, userType={}", category, userType);
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("데이터 조회 중 오류 발생: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
     // 위치 기반 검색 (위도/경도 범위 내)
     @GetMapping("/nearby")
     public ResponseEntity<List<AccessibilityDTO>> getNearbyLocations(
