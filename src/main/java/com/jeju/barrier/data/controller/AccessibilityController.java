@@ -49,7 +49,7 @@ public class AccessibilityController {
 
     @GetMapping("/filter")
     public ResponseEntity<List<AccessibilityDTO>> getFilteredData(
-            @RequestParam(required = false) List<String> category,
+            @RequestParam(name = "categories", value = "categories", required = false) List<String> categories,
             @RequestParam(required = false) List<String> userTypes,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) Double lat,
@@ -60,8 +60,8 @@ public class AccessibilityController {
         try {
             // 카테고리 문자열 리스트를 enum 리스트로 변환
             List<AccessibilityFilter.Category> categoryEnums = null;
-            if (category != null && !category.isEmpty()) {
-                categoryEnums = category.stream()
+            if (categories != null && !categories.isEmpty()) {
+                categoryEnums = categories.stream()
                         .map(cat -> {
                             log.debug("카테고리 변환: {}", cat);
                             return AccessibilityFilter.Category.valueOf(cat.toUpperCase());
@@ -82,7 +82,7 @@ public class AccessibilityController {
                 log.debug("변환된 유저타입: {}", userTypeEnums);
             }
 
-            // 필터 객체 생성
+            // 필터 객체 생성ㅌ
             AccessibilityFilter filter = AccessibilityFilter.builder()
                     .categories(categoryEnums)
                     .userTypes(userTypeEnums)

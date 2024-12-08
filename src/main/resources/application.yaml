@@ -13,3 +13,23 @@ logging:
   level:
     root: INFO
     com.jeju.barrier: DEBUG
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_IP}:3306/${DB_NAME}
+    ##?createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+
+cors:
+  origin: http://43.202.62.146,http://43.202.62.146:8080,http://localhost:3000
