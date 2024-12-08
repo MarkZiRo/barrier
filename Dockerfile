@@ -6,6 +6,7 @@ COPY build/libs/*.jar app.jar
 
 CMD ["java", "-jar", "app.jar"]
 
+
 EXPOSE 8080
 EXPOSE 443
 EXPOSE 80
