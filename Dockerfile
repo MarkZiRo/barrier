@@ -8,6 +8,10 @@ RUN chmod +x ./gradlew && \
     ./gradlew bootJar && \
     mv build/libs/*.jar app.jar
 
+FROM eclipse-temurin:21
+WORKDIR /app
+COPY --from=build /app/app.jar .
+
 CMD ["java", "-jar", "app.jar"]
 
 EXPOSE 8080
