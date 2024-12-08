@@ -1,5 +1,8 @@
 FROM openjdk:21
 
+RUN apt-get update && \
+    apt-get install -y findutils
+
 WORKDIR /app
 COPY . .
 
@@ -13,7 +16,3 @@ EXPOSE 443
 EXPOSE 80
 
 CMD ["java", "-jar", "app.jar"]
-
-EXPOSE 8080
-EXPOSE 443
-EXPOSE 80
