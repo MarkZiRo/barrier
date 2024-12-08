@@ -1,6 +1,4 @@
-FROM openjdk:21
-
-RUN apk add --no-cache findutils
+FROM eclipse-temurin:21
 
 WORKDIR /app
 COPY . .
@@ -10,8 +8,8 @@ RUN chmod +x ./gradlew && \
     ./gradlew bootJar && \
     mv build/libs/*.jar app.jar
 
+CMD ["java", "-jar", "app.jar"]
+
 EXPOSE 8080
 EXPOSE 443
 EXPOSE 80
-
-CMD ["java", "-jar", "app.jar"]
