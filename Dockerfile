@@ -1,13 +1,11 @@
-FROM eclipse-temurin:21
-
+FROM eclipse-temurin:21 AS build
 WORKDIR /app
 COPY . .
-
-# gradlew에 실행 권한을 부여하고 빌드 실행
 RUN chmod +x ./gradlew && \
     ./gradlew bootJar && \
     mv build/libs/*.jar app.jar
 
+# 두 번째 스테이지: 실행
 FROM eclipse-temurin:21
 WORKDIR /app
 COPY --from=build /app/app.jar .
